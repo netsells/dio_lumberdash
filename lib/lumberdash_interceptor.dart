@@ -3,28 +3,33 @@ import 'package:lumberdash/lumberdash.dart';
 
 class LumberdashInterceptor extends Interceptor {
   @override
-  Future<void> onError(DioError err) async {
+  void onError(DioError err, ErrorInterceptorHandler handler) {
+    super.onError(err, handler);
+
     String message;
-    if (err.type == DioErrorType.RESPONSE) {
+    final response = err.response;
+    if (response != null) {
       message =
-          "${err.response.statusCode}: ${err.request.method} ${err.request.uri.toString()}";
+          "${response.statusCode}: ${err.requestOptions.method} ${err.requestOptions.uri.toString()}";
     } else {
       message = err.type.toString();
     }
 
     final map = <String, String>{
       'message': err.message,
-      'request': _requestToMap(err.request).toString(),
-      'response': _responseToMap(err.response).toString(),
+      'request': _requestToMap(err.requestOptions).toString(),
+      'response': response == null ? '' : _responseToMap(response).toString(),
     };
 
     logMessage(message, extras: map);
   }
 
   @override
-  Future<void> onResponse(Response response) async {
+  void onResponse(Response response, ResponseInterceptorHandler handler) {
+    super.onResponse(response, handler);
+
     logMessage(
-      "${response.statusCode}: ${response.request.method} ${response.request.uri.toString()}",
+      "${response.statusCode}: ${response.requestOptions.method} ${response.requestOptions.uri.toString()}",
       extras: _responseToMap(response),
     );
   }
@@ -41,16 +46,16 @@ class LumberdashInterceptor extends Interceptor {
 
   Map<String, String> _responseToMap(Response response) {
     return {
-      'base_url': response.request.baseUrl,
-      'path': response.request.path,
-      'query': response.request.queryParameters.toString(),
-      'method': response.request.method,
-      'request_body': response.request.data.toString(),
-      'request_headers': response.request.headers.toString(),
+      'base_url': response.requestOptions.baseUrl,
+      'path': response.requestOptions.path,
+      'query': response.requestOptions.queryParameters.toString(),
+      'method': response.requestOptions.method,
+      'request_body': response.requestOptions.data.toString(),
+      'request_headers': response.requestOptions.headers.toString(),
       'response_body': response.data.toString(),
       'response_headers': response.headers.toString(),
       'status_code': response.statusCode.toString(),
-      'status_message': response.statusMessage,
+      'status_message': response.statusMessage ?? '',
     };
   }
 }
